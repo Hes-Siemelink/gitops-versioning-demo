@@ -1,0 +1,847 @@
+# Exported from:        http://localhost:5516/
+# Release version:      10.2.4
+# Date created:         Fri Oct 01 08:34:17 UTC 2021
+
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Chain Store
+spec:
+- name: Demo repository
+  type: git.Repository
+  url: https://github.com/Hes-Siemelink/gitops-versioning-demo
+  username: Hes-Siemelink
+  password: !value "git_Repository_Demo_repository_password"
+- template: Automated delivery process
+  scheduledStartDate: 2021-10-01T08:30:10.733Z
+  dueDate: 2021-10-01T09:30:10.733Z
+  phases:
+  - phase: Dev
+    tasks:
+    - name: Create ticket
+      type: jira.CreateIssue
+      jiraServer: Jira Server
+      project: SAN
+      ^title: "${featureName}"
+      description: "Release process for feature ${release.title} has started."
+      team: Product Owner
+      variableMapping:
+        pythonScript.issueId: "${jiraTicket}"
+    - name: Update feature ticket for building
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: IN PROGRESS
+      comment: The feature is being built
+      team: Product Owner
+    - name: Build feature
+      type: jenkins.Build
+      jenkinsServer: Jenkins localhost
+      jobName: Unknown job
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Update feature ticket for testing
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: TESTING
+      comment: The feature is being tested.
+      team: Product Owner
+    - name: Code Quality
+      type: sonar.checkCompliance
+      sonarServer: SonarQube
+      resource: it.eng.knowage:knowagesdk
+      team: Dev
+    - name: Security Analysis
+      type: fortify.checkCompliance
+      fortifyServer: Fortify SSC
+      projectName: Address Book
+      projectVersion: COOL-234
+      minimumStarRating: 0
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Code Compliance Check
+      type: blackduck.checkCompliance
+      blackduckServer: Blackduck
+      projectName: xl-release
+      versionName: master
+      securityRiskHighThreshold: 1000
+      securityRiskMediumThreshold: 1000
+      securityRiskLowThreshold: 1000
+      licenseRiskHighThreshold: 1000
+      licenseRiskMediumThreshold: 1000
+      licenseRiskLowThreshold: 1000
+      operationalRiskHighThreshold: 2000
+      operationalRiskMediumThreshold: 1000
+      operationalRiskLowThreshold: 1000
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    color: '#08B153'
+  - phase: QA
+    tasks:
+    - name: Create ServiceNow Task
+      type: servicenow.CreateChangeTask
+      servicenowServer: ServiceNow
+      shortDescription: "Test ${jiraTicket}"
+      additionalFields:
+        description: "Test ${jiraTicket}"
+      team: QA
+      variableMapping:
+        pythonScript.Ticket: "${taskTicket}"
+        pythonScript.data: "${taskData}"
+        pythonScript.sysId: "${taskId}"
+    - name: Deploy to Test Environment
+      type: xldeploy.Deploy
+      server: XL Deploy
+      team: QA
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Update Task
+      type: servicenow.UpdateChangeTask
+      servicenowServer: ServiceNow
+      state: Work in Progress
+      additionalFields:
+        comments: "${jiraTicket} is ready for testing"
+        priority: 3 - Moderate
+      sysId: "${taskId}"
+      team: QA
+      variableMapping:
+        pythonScript.data: "${updateTaskData}"
+    - name: Perform tests
+      type: xlrelease.ParallelGroup
+      tasks:
+      - name: Do API tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(0)
+      - name: Do Performance tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(0)
+    - name: Update Task
+      type: servicenow.UpdateChangeTask
+      servicenowServer: ServiceNow
+      state: Closed Complete
+      additionalFields:
+        priority: 3 - Moderate
+        comments: "${jiraTicket} has been tested"
+      sysId: "${taskId}"
+      team: QA
+      variableMapping:
+        pythonScript.data: "${updateTaskData}"
+    color: '#FD8D10'
+  - phase: Merge Feature
+    tasks:
+    - name: Send notification
+      type: xlrelease.NotificationTask
+      team: Product Owner
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+      addresses:
+      - po@example.com
+      subject: "Feature ${release.title} is complete"
+      body: "Feature ${release.title} is complete and will be merged."
+    - name: Merge pull request
+      type: xlrelease.Task
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Close feature ticket
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: CLOSED
+      comment: Feature was tested.
+      team: Product Owner
+    color: '#0099CC'
+  variables:
+  - type: xlrelease.StringVariable
+    key: jiraTicket
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskTicket
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskData
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskId
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: updateTaskData
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: featureName
+    label: Feature name
+    description: The name of the feature that is to be implemented
+  - type: xlrelease.StringVariable
+    key: estimationReleaseId
+    requiresValue: false
+    showOnReleaseStart: false
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_Automated_delivery_process_scriptUserPassword"
+  riskProfile: Default risk profile
+- template: Automated delivery process (Master)
+  scheduledStartDate: 2021-10-01T08:30:11.681Z
+  dueDate: 2021-10-01T09:30:11.681Z
+  phases:
+  - phase: Dev
+    tasks:
+    - name: Create ticket
+      type: jira.CreateIssue
+      jiraServer: Jira Server
+      project: SAN
+      ^title: "${featureName}"
+      description: "Release process for feature ${release.title} has started."
+      team: Product Owner
+      variableMapping:
+        pythonScript.issueId: "${jiraTicket}"
+    - name: Update feature ticket for building
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: IN PROGRESS
+      comment: The feature is being built
+      team: Product Owner
+    - name: Build feature
+      type: jenkins.Build
+      jenkinsServer: Jenkins localhost
+      jobName: Cool Store/job/Address book/job/COOL-113/
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Update feature ticket for testing
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: TESTING
+      comment: The feature is being tested.
+      team: Product Owner
+    - name: Code Quality
+      type: sonar.checkCompliance
+      sonarServer: SonarQube
+      resource: it.eng.knowage:knowagesdk
+      team: Dev
+    - name: Security Analysis
+      type: fortify.checkCompliance
+      fortifyServer: Fortify SSC
+      projectName: Address Book
+      projectVersion: COOL-234
+      minimumStarRating: 0
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Code Compliance Check
+      type: blackduck.checkCompliance
+      blackduckServer: Blackduck
+      projectName: xl-release
+      versionName: master
+      securityRiskHighThreshold: 1000
+      securityRiskMediumThreshold: 1000
+      securityRiskLowThreshold: 1000
+      licenseRiskHighThreshold: 1000
+      licenseRiskMediumThreshold: 1000
+      licenseRiskLowThreshold: 1000
+      operationalRiskHighThreshold: 2000
+      operationalRiskMediumThreshold: 1000
+      operationalRiskLowThreshold: 1000
+      team: Dev
+    color: '#08B153'
+  - phase: QA
+    tasks:
+    - name: Create ServiceNow Task
+      type: servicenow.CreateChangeTask
+      servicenowServer: ServiceNow
+      shortDescription: "Test ${jiraTicket}"
+      additionalFields:
+        description: "Test ${jiraTicket}"
+      team: QA
+      variableMapping:
+        pythonScript.Ticket: "${taskTicket}"
+        pythonScript.data: "${taskData}"
+        pythonScript.sysId: "${taskId}"
+    - name: Deploy to Test Environment
+      type: xldeploy.Deploy
+      server: XL Deploy
+      deploymentPackage: rest-o-rant-web-docker/1.0
+      deploymentEnvironment: Environments/Local Docker Engine
+      team: QA
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Update Task
+      type: servicenow.UpdateChangeTask
+      servicenowServer: ServiceNow
+      state: Work in Progress
+      additionalFields:
+        comments: "${jiraTicket} is ready for testing"
+        priority: 3 - Moderate
+      sysId: "${taskId}"
+      team: QA
+      variableMapping:
+        pythonScript.data: "${updateTaskData}"
+    - name: Perform tests
+      type: xlrelease.ParallelGroup
+      tasks:
+      - name: Do API tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(0)
+      - name: Do Performance tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(0)
+    - name: Undeploy application
+      type: xldeploy.Undeploy
+      server: XL Deploy
+      deployedApplication: Environments/Local Docker Engine/rest-o-rant-web-docker
+    - name: Update Task
+      type: servicenow.UpdateChangeTask
+      servicenowServer: ServiceNow
+      state: Closed Complete
+      additionalFields:
+        priority: 3 - Moderate
+        comments: "${jiraTicket} has been tested"
+      sysId: "${taskId}"
+      team: QA
+      variableMapping:
+        pythonScript.data: "${updateTaskData}"
+    color: '#FD8D10'
+  - phase: Merge Feature
+    tasks:
+    - name: Send notification
+      type: xlrelease.NotificationTask
+      team: Product Owner
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+      addresses:
+      - po@example.com
+      subject: "Feature ${release.title} is complete"
+      body: "Feature ${release.title} is complete and will be merged."
+    - name: Merge pull request
+      type: xlrelease.Task
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Close feature ticket
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: CLOSED
+      comment: Feature was tested.
+      team: Product Owner
+    color: '#0099CC'
+  variables:
+  - type: xlrelease.StringVariable
+    key: jiraTicket
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskTicket
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskData
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskId
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: updateTaskData
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: featureName
+    label: Feature name
+    description: The name of the feature that is to be implemented
+  - type: xlrelease.StringVariable
+    key: estimationReleaseId
+    requiresValue: false
+    showOnReleaseStart: false
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_Automated_delivery_process__Master__scriptUserPassword"
+  riskProfile: Default risk profile
+- template: Estimate feature
+  scheduledStartDate: 2019-05-27T07:00:00Z
+  dueDate: 2019-05-27T08:00:00Z
+  phases:
+  - phase: Estimation
+    tasks:
+    - name: Estimate feature
+      type: xlrelease.ScriptTask
+      team: Product Owner
+      script: |-
+        print "Estimating ${jiraTicket}"
+        import time
+        time.sleep(2)
+    color: '#08B153'
+  variables:
+  - type: xlrelease.StringVariable
+    key: jiraTicket
+    label: JIRA ticket
+    description: JIRA ticket number
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_Estimate_feature_scriptUserPassword"
+- template: Manual delivery process
+  scheduledStartDate: 2021-10-01T08:30:06.850Z
+  dueDate: 2021-10-01T09:30:06.850Z
+  phases:
+  - phase: Plan
+    tasks:
+    - name: Start feature process
+      type: xlrelease.Task
+      description: Follow the process to track the delviery of a feature.
+      owner: admin
+      team: Product Owner
+    - name: Define feature name
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: admin
+      team: Product Owner
+      variables:
+      - featureName
+    - name: Validate name
+      type: xlrelease.ScriptTask
+      team: Product Owner
+      script: |-
+        if 'featureName' not in releaseVariables:
+            raise Exception('Please set the feature name!')
+    - name: Create ticket
+      type: jira.CreateIssue
+      jiraServer: Jira Server
+      project: SAN
+      ^title: "${featureName}"
+      description: "Release process for feature ${release.title} has started."
+      team: Product Owner
+      variableMapping:
+        pythonScript.issueId: "${jiraTicket}"
+    - name: Do estimation
+      type: xlrelease.CreateReleaseTask
+      team: Product Owner
+      newReleaseTitle: "Estimate ${jiraTicket}"
+      templateVariables:
+      - type: xlrelease.StringVariable
+        key: jiraTicket
+        label: JIRA ticket
+        description: JIRA ticket number
+        value: "${jiraTicket}"
+      createdReleaseId: "${estimationReleaseId}"
+      releaseTags:
+      - Estimation
+      template: Chain Store/Estimate feature
+    - name: Estimation is done
+      type: xlrelease.GateTask
+      team: Product Owner
+      dependencies:
+      - type: xlrelease.Dependency
+        targetId: "${estimationReleaseId}"
+    - name: Ready for development?
+      type: xlrelease.GateTask
+      owner: admin
+      team: Product Owner
+      conditions:
+      - name: Ticket is estimated
+        type: xlrelease.GateCondition
+      - name: Ticket is in current sprint
+        type: xlrelease.GateCondition
+    - name: Alert Product Manager
+      type: xlrelease.NotificationTask
+      team: Product Owner
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+      addresses:
+      - pm@example.com
+      subject: "In progress: ${featureName} [${jiraTicket}]"
+      body: |-
+        Work has started on the feature '${featureName}'
+
+        JIRA ticket: ${jiraTicket}
+      cc:
+      - po@example.com
+      bcc:
+      - cto@example.com
+      replyTo: release-manager@example.com
+    color: '#0099CC'
+  - phase: Dev
+    tasks:
+    - name: Update feature ticket for building
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: IN PROGRESS
+      comment: The feature is being built
+      team: Product Owner
+    - name: Build feature
+      type: jenkins.Build
+      jenkinsServer: Jenkins localhost
+      jobName: Cool Store/job/Address book/job/COOL-113/
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Update feature ticket for testing
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: TESTING
+      comment: The feature is being tested.
+      team: Product Owner
+    - name: Code Quality
+      type: sonar.checkCompliance
+      sonarServer: SonarQube
+      resource: it.eng.knowage:knowagesdk
+      team: Dev
+    - name: Security Analysis
+      type: fortify.checkCompliance
+      fortifyServer: Fortify SSC
+      projectName: Address Book
+      projectVersion: COOL-234
+      minimumStarRating: 0
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Code Compliance Check
+      type: blackduck.checkCompliance
+      blackduckServer: Blackduck
+      projectName: xl-release
+      versionName: master
+      securityRiskHighThreshold: 1000
+      securityRiskMediumThreshold: 1000
+      securityRiskLowThreshold: 1000
+      licenseRiskHighThreshold: 1000
+      licenseRiskMediumThreshold: 1000
+      licenseRiskLowThreshold: 1000
+      operationalRiskHighThreshold: 2000
+      operationalRiskMediumThreshold: 1000
+      operationalRiskLowThreshold: 1000
+      team: Dev
+    color: '#08B153'
+  - phase: QA
+    tasks:
+    - name: Create ServiceNow Task
+      type: servicenow.CreateChangeTask
+      servicenowServer: ServiceNow
+      shortDescription: "Test ${jiraTicket}"
+      additionalFields:
+        description: "Test ${jiraTicket}"
+      team: QA
+      variableMapping:
+        pythonScript.Ticket: "${taskTicket}"
+        pythonScript.data: "${taskData}"
+        pythonScript.sysId: "${taskId}"
+    - name: Deploy to Test Environment
+      type: xldeploy.Deploy
+      team: QA
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Update Task
+      type: servicenow.UpdateChangeTask
+      servicenowServer: ServiceNow
+      state: Work in Progress
+      additionalFields:
+        comments: "${jiraTicket} is ready for testing"
+        priority: 3 - Moderate
+      sysId: "${taskId}"
+      team: QA
+      variableMapping:
+        pythonScript.data: "${updateTaskData}"
+    - name: Perform tests
+      type: xlrelease.ParallelGroup
+      tasks:
+      - name: Do API tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(3)
+      - name: Do Performance tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(2)
+    - name: Update Task
+      type: servicenow.UpdateChangeTask
+      servicenowServer: ServiceNow
+      state: Closed Complete
+      additionalFields:
+        priority: 3 - Moderate
+        comments: "${jiraTicket} has been tested"
+      sysId: "${taskId}"
+      team: QA
+      variableMapping:
+        pythonScript.data: "${updateTaskData}"
+    color: '#FD8D10'
+  - phase: Merge Feature
+    tasks:
+    - name: Send notification
+      type: xlrelease.NotificationTask
+      team: Product Owner
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+      addresses:
+      - hsiemelink@xebialabs.com
+      subject: "Feature ${release.title} is complete"
+      body: "Feature ${release.title} is complete and will be merged."
+    - name: Merge pull request
+      type: xlrelease.Task
+      team: Dev
+      taskFailureHandlerEnabled: true
+      taskRecoverOp: SKIP_TASK
+    - name: Close feature ticket
+      type: jira.UpdateIssue
+      jiraServer: Jira Server
+      issueId: "${jiraTicket}"
+      newStatus: CLOSED
+      comment: Feature was tested.
+      team: Product Owner
+    color: '#0099CC'
+  variables:
+  - type: xlrelease.StringVariable
+    key: jiraTicket
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskTicket
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskData
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: taskId
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: updateTaskData
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: featureName
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Feature name
+    description: The name of the feature that is to be implemented
+  - type: xlrelease.StringVariable
+    key: estimationReleaseId
+    requiresValue: false
+    showOnReleaseStart: false
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_Manual_delivery_process_scriptUserPassword"
+- notifications:
+  - notification: TASK_OVERDUE
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is overdue.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Owner
+  - notification: TASK_FLAGGED
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The status of the **${task.title}** task in the **${release.title}** release was changed to **${task.flagStatus}** with the following comment:
+
+      **${release.flagComment}**
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Team
+  - notification: AUDIT_REPORT_JOB_ABORTED
+    priority: Normal
+    subject: "[Release] Audit report was aborted"
+    body: |-
+      **Your audit report was aborted!**
+
+       Please try to generate it again or contact your Release administrator for assistance.
+  - notification: MANUAL_TASK_STARTED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has started and is assigned to you or your team.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Task Owner
+  - notification: TASK_FAILED
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has failed.
+
+      Other tasks could still be in progress, but the release will stop after they complete.
+
+      You can retry the task, reassign it to somebody else or abort the release.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: USER_MENTIONED
+    priority: Normal
+    subject: "[Release] ${mentionedByFullName} mentioned you on ${release.title}:\
+      \ ${task.title}"
+    body: "**${mentionedByFullName}** mentioned you on the **${task.title}** task\
+      \ in the **${release.title}** release:"
+  - notification: COMMENT_ADDED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      **${comment.authorFullName}** commented on the **${task.title}** task in the **${release.title}** release:
+
+      ${comment.text}
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: AUDIT_REPORT_JOB_FAILED
+    priority: Normal
+    subject: "[Release] Audit report has failed"
+    body: |-
+      **Your audit report has failed!**
+
+       Please try to generate it again or contact your Release administrator for assistance.
+  - notification: RELEASE_FAILED
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The **${release.title}** release has failed due to a task failure.
+
+      The release is now stopped.
+
+      You can retry the failed task, reassign it to somebody else or abort the release.
+    roles:
+    - Release Admin
+  - notification: TASK_DUE_SOON
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is due in **${task.dueInHours}** hours and **${task.dueInMinutes}** minutes.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Owner
+  - notification: ACTIVE_TASK_UNASSIGNED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is active but not assigned to anyone anymore.
+
+      Please assign the task to a user or a team.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: RELEASE_FAILING
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The **${release.title}** release is failing due to a task failure.
+
+      Other tasks may still be in progress, but the release will stop after they complete.
+
+      You can retry the failed task, reassign it to somebody else or abort the release.
+    roles:
+    - Release Admin
+  - notification: RELEASE_FLAGGED
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The status of the **${release.title}** release was changed to **${release.flagStatus}** with the following comment:
+
+      **${release.flagComment}**
+    roles:
+    - Release Admin
+  - notification: MANUAL_TASK_STARTED_WITHOUT_OWNER
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has started, but it is not assigned.
+
+      Please assign the task to a user or a team.
+    roles:
+    - Watcher
+    - Release Admin
+  - notification: RELEASE_COMPLETED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been completed."
+    roles:
+    - Release Admin
+  - notification: TASK_WAITING_FOR_INPUT
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release needs your input.
+
+      Please enter the required information so the release can continue.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: AUDIT_REPORT_JOB_COMPLETED
+    priority: Normal
+    subject: "[Release] Report '${report.reportName}' is ready"
+    body: |-
+      **Your audit report is complete!**
+
+       '${report.reportName}' is ready for download.
+  - notification: RELEASE_STARTED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been started."
+    bulkSubject: "[Release] Multiple releases started"
+    bulkBody: |-
+      The following releases have been started:
+
+      ${#releases}
+      * [${title}](${url})
+      ${/releases}
+    roles:
+    - Release Admin
+  - notification: RELEASE_ABORTED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been aborted."
+    bulkSubject: "[Release] Multiple releases aborted"
+    bulkBody: |-
+      The following releases have been aborted:
+
+      ${#releases}
+      * [${title}](${url})
+      ${/releases}
+    roles:
+    - Release Admin
+  - notification: ACTIVE_TASK_ASSIGNED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: "The active task **${task.title}** in the **${release.title}** release is\
+      \ now assigned to ${task.ownerFullName}."
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
