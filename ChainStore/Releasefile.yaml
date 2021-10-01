@@ -1,6 +1,6 @@
 # Exported from:        http://localhost:5516/
 # Release version:      10.2.4
-# Date created:         Fri Oct 01 08:34:17 UTC 2021
+# Date created:         Fri Oct 01 08:38:32 UTC 2021
 
 ---
 apiVersion: xl-release/v1
@@ -121,6 +121,12 @@ spec:
           import time
           time.sleep(0)
       - name: Do Performance tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(0)
+      - name: Do Stress test
         type: xlrelease.ScriptTask
         team: QA
         script: |-
@@ -302,6 +308,12 @@ spec:
           import time
           time.sleep(0)
       - name: Do Performance tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(0)
+      - name: Do Stress tests
         type: xlrelease.ScriptTask
         team: QA
         script: |-
@@ -572,6 +584,12 @@ spec:
           import time
           time.sleep(3)
       - name: Do Performance tests
+        type: xlrelease.ScriptTask
+        team: QA
+        script: |-
+          import time
+          time.sleep(2)
+      - name: Do Stress tests
         type: xlrelease.ScriptTask
         team: QA
         script: |-
