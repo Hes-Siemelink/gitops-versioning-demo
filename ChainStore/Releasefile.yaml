@@ -1,6 +1,6 @@
 # Exported from:        http://localhost:5516/
 # Release version:      10.2.4
-# Date created:         Fri Oct 01 08:38:32 UTC 2021
+# Date created:         Fri Oct 01 11:53:27 UTC 2021
 
 ---
 apiVersion: xl-release/v1
@@ -10,9 +10,10 @@ metadata:
 spec:
 - name: Demo repository
   type: git.Repository
+  variableMapping:
+    password: "${folder.git-repo-password}"
   url: https://github.com/Hes-Siemelink/gitops-versioning-demo
   username: Hes-Siemelink
-  password: !value "git_Repository_Demo_repository_password"
 - template: Automated delivery process
   scheduledStartDate: 2021-10-01T08:30:10.733Z
   dueDate: 2021-10-01T09:30:10.733Z
@@ -198,7 +199,8 @@ spec:
     requiresValue: false
     showOnReleaseStart: false
   scriptUsername: admin
-  scriptUserPassword: !value "xlrelease_Release_Automated_delivery_process_scriptUserPassword"
+  variableMapping:
+    scriptUserPassword: "${folder.runner-password}"
   riskProfile: Default risk profile
 - template: Automated delivery process (Master)
   scheduledStartDate: 2021-10-01T08:30:11.681Z
@@ -389,7 +391,8 @@ spec:
     requiresValue: false
     showOnReleaseStart: false
   scriptUsername: admin
-  scriptUserPassword: !value "xlrelease_Release_Automated_delivery_process__Master__scriptUserPassword"
+  variableMapping:
+    scriptUserPassword: "${folder.runner-password}"
   riskProfile: Default risk profile
 - template: Estimate feature
   scheduledStartDate: 2019-05-27T07:00:00Z
@@ -411,7 +414,9 @@ spec:
     label: JIRA ticket
     description: JIRA ticket number
   scriptUsername: admin
-  scriptUserPassword: !value "xlrelease_Release_Estimate_feature_scriptUserPassword"
+  variableMapping:
+    scriptUserPassword: "${folder.runner-password}"
+  riskProfile: Default risk profile
 - template: Manual delivery process
   scheduledStartDate: 2021-10-01T08:30:06.850Z
   dueDate: 2021-10-01T09:30:06.850Z
@@ -663,7 +668,9 @@ spec:
     requiresValue: false
     showOnReleaseStart: false
   scriptUsername: admin
-  scriptUserPassword: !value "xlrelease_Release_Manual_delivery_process_scriptUserPassword"
+  variableMapping:
+    scriptUserPassword: "${folder.runner-password}"
+  riskProfile: Default risk profile
 - notifications:
   - notification: TASK_OVERDUE
     priority: High
