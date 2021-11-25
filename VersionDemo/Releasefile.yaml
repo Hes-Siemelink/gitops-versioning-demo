@@ -1,16 +1,17 @@
-# Exported from:        http://HesBook-2019.local:5516/xlr-web/
+# Exported from:        http://HesBook-2021.local:5516/
 # Release version:      10.4.0-SNAPSHOT
-# Date created:         Mon Oct 25 16:20:00 CEST 2021
+# Date created:         Thu Nov 25 13:42:14 CET 2021
 
 ---
 apiVersion: xl-release/v1
 kind: Templates
 metadata:
-  home: Version demo
+  home: VersionDemo
 spec:
 - template: Sample Release Template
   description: Major and minor release template using manual deployments.
   scheduledStartDate: 2021-10-25T09:00:00+02:00
+  dueDate: 2021-10-25T10:00:00+02:00
   phases:
   - phase: QA
     tasks:
@@ -52,6 +53,9 @@ spec:
       - vagrant@localhost
       subject: "Application ${package} passed QA!"
       body: "The application is available on the ${QA environment} environment."
+    - name: Build
+      type: jenkins.Build
+      password: !value "jenkins_Build_Build_password"
     color: '#498500'
   - phase: UAT
     tasks:
