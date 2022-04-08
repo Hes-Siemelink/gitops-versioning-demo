@@ -1,0 +1,163 @@
+# Exported from:        http://HesBook-2021.local:5516/
+# Release version:      22.2.0-SNAPSHOT
+# Date created:         Fri Apr 08 11:06:58 CEST 2022
+
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Container Tasks Demo
+spec:
+- name: Team Dry Bones Docker
+  type: xlrelease.DockerJobRunner
+  host: tcp://localhost:2375
+  capabilityTags:
+  - docker
+  - dry-bones
+  capacity: 2
+- name: Team Leonardo Docker
+  type: xlrelease.DockerJobRunner
+  host: tcp://localhost:2375
+  capabilityTags:
+  - docker
+  - leonardo
+  capacity: 2
+- name: Team Release Docker
+  type: xlrelease.DockerJobRunner
+  host: tcp://localhost:2375
+  capabilityTags:
+  - docker
+  - release
+- name: Team Sonic Docker
+  type: xlrelease.DockerJobRunner
+  host: unix:///var/run/docker.sock
+  capabilityTags:
+  - docker
+  - sonic
+  capacity: 1
+- template: Sample Container tasks
+  scheduledStartDate: 2022-04-06T05:30:00+02:00
+  dueDate: 2022-04-06T06:30:00+02:00
+  phases:
+  - phase: Demo
+    tasks:
+    - name: Plugin written in Go
+      type: container.HelloDocker
+      variableMapping:
+        responseMapStringString: "${responseMap}"
+        responseBool: "${responseBool}"
+        additionalCapabilities: "${folder.dockerCapabilities}"
+        response: "${response}"
+        responseInt: "${responseInt}"
+      defaultRequiredCapabilities:
+      - docker
+      message: Hello from the other side!
+    - name: Sample python script
+      type: container.Python3Script
+      variableMapping:
+        additionalCapabilities: "${folder.dockerCapabilities}"
+      defaultRequiredCapabilities:
+      - docker
+      script: |-
+        import time
+
+        time.sleep(1)
+
+        result = "after sleep"
+    - name: Advance python script
+      type: container.Python3Script
+      variableMapping:
+        result: "${mavenResponse}"
+        additionalCapabilities: "${folder.dockerCapabilities}"
+      defaultRequiredCapabilities:
+      - docker
+      script: |-
+        import requests
+
+        api_url = 'https://search.maven.org/solrsearch/select?q=spring-boot&start=0&rows=20'
+        headers = {'Content-Type': 'application/json'}
+
+        response = requests.get(api_url, headers=headers)
+
+        print(response)
+
+        result=json.dumps(response.json(), indent=4, sort_keys=True)
+    - name: Calculator (Add numbers)
+      type: calculator.AddNumbers
+      variableMapping:
+        additionalCapabilities: "${folder.dockerCapabilities}"
+      defaultRequiredCapabilities:
+      - docker
+      a: 10
+      b: 50
+    - name: Calculator (Subtract numbers)
+      type: calculator.SubNumbers
+      variableMapping:
+        additionalCapabilities: "${folder.dockerCapabilities}"
+      defaultRequiredCapabilities:
+      - docker
+      a: 33
+      b: 11
+    - name: Calculator (Multiply numbers)
+      type: calculator.MultiplyNumbers
+      variableMapping:
+        additionalCapabilities: "${folder.dockerCapabilities}"
+      defaultRequiredCapabilities:
+      - docker
+      a: 12
+      b: 12
+    - name: Calculator (Divide numbers)
+      type: calculator.DivideNumbers
+      variableMapping:
+        additionalCapabilities: "${folder.dockerCapabilities}"
+      defaultRequiredCapabilities:
+      - docker
+      a: 33
+      b: 11
+    color: '#3d6c9e'
+  variables:
+  - type: xlrelease.StringVariable
+    key: response
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.IntegerVariable
+    key: responseInt
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.BooleanVariable
+    key: responseBool
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.MapStringStringVariable
+    key: responseMap
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: mavenResponse
+    requiresValue: false
+    showOnReleaseStart: false
+  riskProfile: Default risk profile
+- directory: dry-bones
+  children:
+  - folderVariables:
+    - type: xlrelease.SetStringVariable
+      key: folder.dockerCapabilities
+      label: Docker Runner additional capabilities
+      value:
+      - dry-bones
+- directory: leonardo
+  children:
+  - folderVariables:
+    - type: xlrelease.SetStringVariable
+      key: folder.dockerCapabilities
+      label: Docker Runner additional capabilities
+      value:
+      - leonardo
+- directory: sonic
+  children:
+  - folderVariables:
+    - type: xlrelease.SetStringVariable
+      key: folder.dockerCapabilities
+      label: Docker Runner additional capabilities
+      value:
+      - sonic
