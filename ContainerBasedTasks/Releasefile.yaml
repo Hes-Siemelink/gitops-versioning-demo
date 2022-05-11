@@ -1,6 +1,6 @@
 # Exported from:        http://HesBook-2021.home:5516/
 # Release version:      22.2.0-SNAPSHOT
-# Date created:         Wed May 11 13:23:15 CEST 2022
+# Date created:         Wed May 11 13:28:00 CEST 2022
 
 ---
 apiVersion: xl-release/v1
@@ -14,32 +14,13 @@ spec:
     label: Docker Runner additional capabilities
     value:
     - release
-- name: Team Dry Bones Docker
+- name: Docker localhost
   type: xlrelease.DockerJobRunner
-  host: tcp://localhost:2375
-  capabilityTags:
-  - docker
-  - dry-bones
-  capacity: 2
-- name: Team Leonardo Docker
-  type: xlrelease.DockerJobRunner
-  host: tcp://localhost:2375
-  capabilityTags:
-  - docker
-  - leonardo
-  capacity: 2
-- name: Team Release Docker
-  type: xlrelease.DockerJobRunner
-  host: tcp://localhost:2375
-  capabilityTags:
-  - docker
-  - release
-- name: Team Sonic Docker
-  type: xlrelease.DockerJobRunner
-  host: tcp://localhost:2375
+  host: unix:///var/run/docker.sock
   capabilityTags:
   - docker
   - sonic
+  - release
   capacity: 2
 - template: Sample Container tasks
   scheduledStartDate: 2022-04-06T05:30:00+02:00
