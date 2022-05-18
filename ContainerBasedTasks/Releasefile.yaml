@@ -1,12 +1,12 @@
-# Exported from:        http://HesBook-2021.local:5516/
+# Exported from:        http://3c0a90ad1d58:5516/
 # Release version:      22.2.0-SNAPSHOT
-# Date created:         Tue May 17 13:20:34 CEST 2022
+# Date created:         Wed May 18 12:21:31 GMT 2022
 
 ---
 apiVersion: xl-release/v1
 kind: Templates
 metadata:
-  home: Container-based tasks
+  home: Container-based Tasks
 spec:
 - folderVariables:
   - type: xlrelease.SetStringVariable
@@ -14,11 +14,16 @@ spec:
     label: Docker Runner additional capabilities
     value:
     - release
+  - type: xlrelease.PasswordStringVariable
+    key: folder.jenkins.token
+    label: Jenkins token
+    value: !value "xlrelease_PasswordStringVariable_folder_jenkins_token_value"
 - name: Jenkins in Docker
   type: jenkins.Server
+  variableMapping:
+    apiToken: "${folder.jenkins.token}"
   url: http://host.docker.internal:8080
   username: admin
-  apiToken: !value "jenkins_Server_Jenkins_in_Docker_apiToken"
 - name: Docker localhost
   type: xlrelease.DockerJobRunner
   host: unix:///var/run/docker.sock
@@ -28,7 +33,8 @@ spec:
   - release
   capacity: 2
 - template: Jenkins demo
-  scheduledStartDate: 2022-05-17T09:00:00+02:00
+  scheduledStartDate: 2022-05-17T07:00:00Z
+  dueDate: 2022-05-17T08:00:00Z
   phases:
   - phase: Build
     tasks:
@@ -44,8 +50,8 @@ spec:
     color: '#3d6c9e'
   riskProfile: Default risk profile
 - template: Sample Container tasks
-  scheduledStartDate: 2022-04-06T05:30:00+02:00
-  dueDate: 2022-04-06T06:30:00+02:00
+  scheduledStartDate: 2022-04-06T03:30:00Z
+  dueDate: 2022-04-06T04:30:00Z
   phases:
   - phase: Demo
     tasks:
